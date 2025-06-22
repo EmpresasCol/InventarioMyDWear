@@ -538,6 +538,10 @@ async function loadInventory() {
                     ${p.logo_type ? `<p>Logo: ${p.logo_type}</p>` : ''}
                     <p>Cantidad: ${p.quantity}</p>
                     <p>Precio: $${p.price}</p>
+                    <div class="card-actions">
+                    <button class="btn btn-delete" onclick="deleteProduct(${p.id})">🗑️ Eliminar</button>
+                    </div>
+
                 </div>
             `;
         });
