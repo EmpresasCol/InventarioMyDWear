@@ -434,7 +434,7 @@
 
     <script>
 const API_BASE = "https://inventory-backend-7jjr.onrender.com"; // Reemplaza por tu URL real
-let inventory = [];
+
 // Mostrar secciones
 function showTab(tabName) {
     document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
@@ -512,37 +512,42 @@ async function saveProduct() {
         }
 
 // Cargar inventario
+let inventory = [];
+
 async function loadInventory() {
-    inventory = data.data;
-    const container = document.getElementById('inventoryList');
+    const container = document.getElementById('inventoryContainer');
     container.innerHTML = '';
 
     try {
         const res = await fetch(`${API_BASE}/api/products`);
-        const data = await res.json();
+        const result = await res.json();
 
-        if (!data.success || !data.data.length) {
-            container.innerHTML = '<p>No hay productos.</p>';
+        if (!result.success || !result.data.length) {
+            container.innerHTML = '<p>No hay productos registrados.</p>';
             return;
         }
 
+        inventory = result.data;
+
         inventory.forEach(p => {
-            let html = `
-                <div class="product-card">
-                    ${p.image_url ? `<img src="${p.image_url}" alt="Producto" width="100">` : ''}
-                    <p><strong>${p.type.toUpperCase()}</strong> (${p.size}) - ${p.color}</p>
+            container.innerHTML += `
+                <div class="inventory-card">
+                    ${p.image_url ? `<img src="${p.image_url}" width="100">` : ''}
+                    <p><strong>${p.type}</strong> - ${p.color} (${p.size})</p>
                     ${p.brand ? `<p>Marca: ${p.brand}</p>` : ''}
                     ${p.logo_type ? `<p>Logo: ${p.logo_type}</p>` : ''}
-                    <p>Stock: ${p.quantity} - Precio: $${p.price}</p>
+                    <p>Cantidad: ${p.quantity}</p>
+                    <p>Precio: $${p.price}</p>
                 </div>
             `;
-            container.innerHTML += html;
         });
+
     } catch (err) {
-        console.error(err);
-        container.innerHTML = '<p>❌ Error al cargar inventario</p>';
+        console.error('❌ Error al cargar productos:', err);
+        container.innerHTML = '<p>Error al cargar productos</p>';
     }
 }
+
 
         // Función para filtrar productos
         function filterProducts() {
