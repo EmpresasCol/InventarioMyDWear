@@ -434,7 +434,7 @@
 
     <script>
 const API_BASE = "https://inventory-backend-7jjr.onrender.com"; // Reemplaza por tu URL real
-
+let inventory = [];
 // Mostrar secciones
 function showTab(tabName) {
     document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
@@ -512,7 +512,6 @@ async function saveProduct() {
         }
 
 // Cargar inventario
-let inventory = []; 
 async function loadInventory() {
     inventory = data.data;
     const container = document.getElementById('inventoryList');
@@ -527,7 +526,7 @@ async function loadInventory() {
             return;
         }
 
-        data.data.forEach(p => {
+        inventory.forEach(p => {
             let html = `
                 <div class="product-card">
                     ${p.image_url ? `<img src="${p.image_url}" alt="Producto" width="100">` : ''}
