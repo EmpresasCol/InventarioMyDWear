@@ -512,7 +512,9 @@ async function saveProduct() {
         }
 
 // Cargar inventario
+let inventory = []; 
 async function loadInventory() {
+    inventory = data.data;
     const container = document.getElementById('inventoryList');
     container.innerHTML = '';
 
@@ -559,31 +561,59 @@ async function loadInventory() {
         }
 
         // Función para eliminar producto
-        function deleteProduct(id) {
-            if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-                inventory = inventory.filter(product => product.id !== id);
-                localStorage.setItem('inventory', JSON.stringify(inventory));
-                loadInventory();
-                alert('✅ Producto eliminado exitosamente!');
-            }
+async function deleteProduct(id) {
+    if (!confirm("¿Eliminar este producto?")) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/products/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            alert("✅ Producto eliminado");
+            loadInventory(); // recarga la vista
+        } else {
+            alert("❌ Error al eliminar: " + data.message);
         }
+    } catch (err) {
+        console.error(err);
+        alert("❌ Error al conectar con el servidor");
+    }
+}
+
 
         // Función para editar producto (simplificada)
-        function editProduct(id) {
-            const product = inventory.find(p => p.id === id);
-            if (product) {
-                const newQuantity = prompt('Nueva cantidad:', product.quantity);
-                if (newQuantity !== null && !isNaN(newQuantity) && newQuantity > 0) {
-                    product.quantity = parseInt(newQuantity);
-                    localStorage.setItem('inventory', JSON.stringify(inventory));
-                    loadInventory();
-                    alert('✅ Cantidad actualizada exitosamente!');
-                }
-            }
+async function editProduct(id) {
+    const producto = inventory.find(p => p.id === id);
+    const nuevaCantidad = prompt("Nueva cantidad:", producto.quantity);
+    if (!nuevaCantidad || isNaN(nuevaCantidad) || nuevaCantidad <= 0) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...producto, quantity: parseInt(nuevaCantidad) })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            alert("✅ Cantidad actualizada");
+            loadInventory();
+        } else {
+            alert("❌ Error al actualizar");
         }
+    } catch (err) {
+        console.error(err);
+        alert("❌ Error al conectar con el servidor");
+    }
+}
+
 
         // Función para cargar estadísticas
         function loadStats() {
+                if (!inventory.length) {
+                document.getElementById('statsContainer').innerHTML = '<p>No hay datos</p>';
+                return;
+                }
+
             const totalProducts = inventory.reduce((sum, product) => sum + product.quantity, 0);
             const totalValue = inventory.reduce((sum, product) => sum + (product.price * product.quantity), 0);
             const conjuntos = inventory.filter(p => p.type === 'conjunto').reduce((sum, p) => sum + p.quantity, 0);
