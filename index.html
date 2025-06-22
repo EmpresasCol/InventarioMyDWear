@@ -400,7 +400,7 @@
                     </div>
                 </div>
 
-                <button class="btn" onclick="addProduct()">🚀 Agregar Producto</button>
+                <button class="btn" onclick="saveProduct()">🚀 Agregar Producto</button>
             </div>
 
             <!-- Sección Inventario -->
@@ -433,135 +433,73 @@
     </div>
 
     <script>
-        // Base de datos local (simulando MySQL)
-        let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
-        let productId = parseInt(localStorage.getItem('lastProductId')) || 0;
+const API_BASE = "https://inventory-backend-7jjr.onrender.com"; // Reemplaza por tu URL real
 
-        // Función para cambiar tabs
-        function showTab(tabName) {
-            // Ocultar todas las secciones
-            document.querySelectorAll('.form-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remover clase active de todos los tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Mostrar la sección seleccionada
-            document.getElementById(tabName).classList.add('active');
-            
-            // Activar el tab seleccionado
-            event.target.classList.add('active');
-            
-            // Cargar contenido específico según el tab
-            if (tabName === 'inventory') {
-                loadInventory();
-            } else if (tabName === 'stats') {
-                loadStats();
-            }
-        }
+// Mostrar secciones
+function showTab(tabName) {
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tabName).classList.add('active');
+    event.target.classList.add('active');
 
-        // Función para alternar campos según el tipo de producto
-        function toggleProductFields() {
-            const productType = document.getElementById('productType').value;
-            const brandGroup = document.getElementById('brandGroup');
-            const logoGroup = document.getElementById('logoGroup');
-            
-            if (productType === 'conjunto') {
-                brandGroup.style.display = 'block';
-                logoGroup.style.display = 'none';
-            } else {
-                brandGroup.style.display = 'none';
-                logoGroup.style.display = 'block';
-            }
-        }
+    if (tabName === 'inventory') loadInventory();
+    else if (tabName === 'stats') loadStats();
+}
 
-        // Función para previsualizar imagen
-        function previewImage(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const preview = document.getElementById('imagePreview');
-                    const uploadText = document.getElementById('uploadText');
-                    
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    uploadText.style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
+// Alternar campos dinámicos
+function toggleProductFields() {
+    const type = document.getElementById('productType').value;
+    document.getElementById('brandGroup').style.display = (type === 'conjunto') ? 'block' : 'none';
+    document.getElementById('logoGroup').style.display = (type === 'boxer') ? 'block' : 'none';
+}
 
-        // Función para agregar producto
-        function addProduct() {
-            const productType = document.getElementById('productType').value;
-            const size = document.getElementById('size').value;
-            const color = document.getElementById('color').value;
-            const quantity = parseInt(document.getElementById('quantity').value);
-            const price = parseFloat(document.getElementById('price').value) || 0;
-            const imageInput = document.getElementById('imageInput');
-            
-            if (!color.trim()) {
-                alert('⚠️ Por favor, ingresa el color del producto');
-                return;
-            }
-            
-            if (quantity < 1) {
-                alert('⚠️ La cantidad debe ser mayor a 0');
-                return;
-            }
+// Previsualizar imagen
+function previewImage(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+            document.getElementById('uploadText').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+}
 
-            const product = {
-                id: ++productId,
-                type: productType,
-                size: size,
-                color: color.trim(),
-                quantity: quantity,
-                price: price,
-                dateAdded: new Date().toLocaleDateString(),
-                image: null
-            };
+        
+// Guardar producto
+async function saveProduct() {
+    const formData = new FormData();
+    const type = document.getElementById('productType').value;
+    formData.append('type', type);
+    formData.append('size', document.getElementById('size').value);
+    formData.append('color', document.getElementById('color').value.trim());
+    formData.append('quantity', parseInt(document.getElementById('quantity').value));
+    formData.append('price', parseFloat(document.getElementById('price').value || 0));
+    if (type === 'conjunto') formData.append('brand', document.getElementById('brand').value);
+    if (type === 'boxer') formData.append('logo_type', document.getElementById('logoType').value);
+    if (document.getElementById('imageInput').files[0]) {
+        formData.append('image', document.getElementById('imageInput').files[0]);
+    }
 
-            // Agregar campos específicos según el tipo
-            if (productType === 'conjunto') {
-                product.brand = document.getElementById('brand').value;
-            } else {
-                product.logoType = document.getElementById('logoType').value;
-            }
-
-            // Procesar imagen si existe
-            if (imageInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    product.image = e.target.result;
-                    saveProduct(product);
-                }
-                reader.readAsDataURL(imageInput.files[0]);
-            } else {
-                saveProduct(product);
-            }
-        }
-
-        // Función para guardar producto
-        function saveProduct(product) {
-            inventory.push(product);
-            localStorage.setItem('inventory', JSON.stringify(inventory));
-            localStorage.setItem('lastProductId', productId.toString());
-            
-            // Limpiar formulario
+    try {
+        const res = await fetch(`${API_BASE}/api/products`, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            alert("✅ Producto guardado exitosamente.");
             clearForm();
-            
-            // Mostrar mensaje de éxito
-            alert('✅ Producto agregado exitosamente!');
-            
-            // Si estamos en la tab de inventario, recargar
-            if (document.getElementById('inventory').classList.contains('active')) {
-                loadInventory();
-            }
+            loadInventory();
+        } else {
+            alert("❌ Error: " + data.message);
         }
+    } catch (err) {
+        console.error(err);
+        alert("❌ No se pudo conectar al servidor.");
+    }
+}
+    
+
 
         // Función para limpiar formulario
         function clearForm() {
@@ -573,45 +511,37 @@
             document.getElementById('uploadText').style.display = 'block';
         }
 
-        // Función para cargar inventario
-        function loadInventory() {
-            const container = document.getElementById('inventoryContainer');
-            
-            if (inventory.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i>📦</i>
-                        <h3>No hay productos en el inventario</h3>
-                        <p>Agrega tu primer producto para comenzar</p>
-                    </div>
-                `;
-                return;
-            }
+// Cargar inventario
+async function loadInventory() {
+    const container = document.getElementById('inventoryList');
+    container.innerHTML = '';
 
-            container.innerHTML = inventory.map(product => {
-                const imageSrc = product.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRUNGMEYxIi8+CjxwYXRoIGQ9Ik04MCA4MEgxMjBWMTIwSDgwVjgwWiIgZmlsbD0iIzdGOEM4RCIvPgo8L3N2Zz4=';
-                
-                return `
-                    <div class="inventory-card">
-                        <img src="${imageSrc}" alt="${product.type}" class="card-image">
-                        <div class="card-info">
-                            <h3>${product.type === 'conjunto' ? '🏃‍♂️ Conjunto Deportivo' : '🩲 Boxer Calvin Klein'}</h3>
-                            <p><strong>Talla:</strong> ${product.size}</p>
-                            <p><strong>Color:</strong> ${product.color}</p>
-                            <p><strong>Cantidad:</strong> ${product.quantity}</p>
-                            ${product.brand ? `<p><strong>Marca:</strong> ${product.brand}</p>` : ''}
-                            ${product.logoType ? `<p><strong>Logo:</strong> ${product.logoType}</p>` : ''}
-                            ${product.price > 0 ? `<p><strong>Precio:</strong> $${product.price.toFixed(2)}</p>` : ''}
-                            <p><strong>Agregado:</strong> ${product.dateAdded}</p>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn" style="font-size: 12px; padding: 8px 16px;" onclick="editProduct(${product.id})">✏️ Editar</button>
-                            <button class="btn btn-delete" style="font-size: 12px; padding: 8px 16px;" onclick="deleteProduct(${product.id})">🗑️ Eliminar</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+    try {
+        const res = await fetch(`${API_BASE}/api/products`);
+        const data = await res.json();
+
+        if (!data.success || !data.data.length) {
+            container.innerHTML = '<p>No hay productos.</p>';
+            return;
         }
+
+        data.data.forEach(p => {
+            let html = `
+                <div class="product-card">
+                    ${p.image_url ? `<img src="${p.image_url}" alt="Producto" width="100">` : ''}
+                    <p><strong>${p.type.toUpperCase()}</strong> (${p.size}) - ${p.color}</p>
+                    ${p.brand ? `<p>Marca: ${p.brand}</p>` : ''}
+                    ${p.logo_type ? `<p>Logo: ${p.logo_type}</p>` : ''}
+                    <p>Stock: ${p.quantity} - Precio: $${p.price}</p>
+                </div>
+            `;
+            container.innerHTML += html;
+        });
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p>❌ Error al cargar inventario</p>';
+    }
+}
 
         // Función para filtrar productos
         function filterProducts() {
